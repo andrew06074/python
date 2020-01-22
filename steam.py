@@ -1,3 +1,5 @@
+# this script will dowload the top 100 games from the steam store stats page as well as their current players
+# and save the file as a csv. The csv will be named by the current time the script is run
 import time
 from urllib.request import urlopen as ureq
 from bs4 import BeautifulSoup as soup
