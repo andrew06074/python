@@ -1,0 +1,12 @@
+from selenium import webdriver
+from time import sleep
+
+class dellBot:
+    def __init__(self):
+        self.driver = webdriver.Chrome(r"C:\Users\andre\webdriver\chromedriver.exe")
+        self.driver.get("https://www.dell.com/en-us/work/shop/partsforyourdell/index")
+        
+        # select search box
+        self.driver.find_element_by_xpath("//a[contains(text(), 'Where is')]").click()
+
+dellBot()
