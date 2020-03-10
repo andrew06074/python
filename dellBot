@@ -1,12 +1,130 @@
 from selenium import webdriver
+from urllib.request import urlopen as ureq
+from bs4 import BeautifulSoup as soup
+import pandas as pd
 from time import sleep
+
 
 class dellBot:
     def __init__(self):
-        self.driver = webdriver.Chrome(r"C:\Users\andre\webdriver\chromedriver.exe")
-        self.driver.get("https://www.dell.com/en-us/work/shop/partsforyourdell/index")
-        
-        # select search box
-        self.driver.find_element_by_xpath("//a[contains(text(), 'Where is')]").click()
 
-dellBot()
+        #open bot to dell webpage
+        self.driver = webdriver.Chrome(
+            r"C:\Users\andre\webdriver\chromedriver.exe")
+        self.driver.get(
+            "https://www.dell.com/en-us/work/shop/partsforyourdell/index")
+        sleep(2)
+
+    def search_tag(self):
+        #select search box and type input serial number
+        self.driver.find_element_by_xpath(
+            '/html/body/div[3]/div/section/div/div/div[1]/div[1]/div/div[2]/div/div/div[1]/table/tbody/tr/td[1]/input').send_keys('FM4Z9S1')
+        self.driver.find_element_by_xpath(
+            '/html/body/div[3]/div/section/div/div/div[1]/div[1]/div/div[2]/div/div/div[1]/table/tbody/tr/td[2]/button').click()
+        sleep(10)
+
+        #INCOMPLETE(add part to bypass ad)
+        
+        #sleep(5)
+
+    def get_info(self):
+        #########################################OPEN PAGE AND READ INTO SOUP####################################
+        #get current url
+        my_url = self.driver.current_url
+
+        #open connection/grab page
+        uclient = ureq(my_url)
+        page_html = uclient.read()
+        uclient.close()
+
+        #html parser
+        pagesoup = soup(page_html, "html.parser")
+
+        #############THIS SECTION GETS THE INFORMATION OF THE COMPUTER THAT WAS SEARCHED (NAME,PROCESSOR,HDD)#############      
+        #name and service tag
+        name = pagesoup.find('h3',class_='feature pfyd-results-model-name').text
+        service_tag = pagesoup.find('h4', class_='feature text').text
+        service_tag = service_tag.replace('Parts shipped with ', '')
+        service_tag = service_tag.replace(':', '')
+
+        #component title
+        component_title = []
+        for strong_tag in pagesoup.find_all('strong')[:-3]:
+            component_title.append(strong_tag.text)
+        component_title.append('Extra:')
+
+        #component attribute
+        component_bute = []
+        for attribute in pagesoup.find_all('span',class_='text-block-69 as-shipped-details'):
+            component_bute.append(attribute.text)
+
+        extra_component_bute = []
+        for attribute in pagesoup.find_all('span',class_='spec-text-details text-block-69 as-shipped-details'):
+            extra_component_bute.append(attribute.text)
+
+        #component quantity
+        component_quantity = []
+        for attribute in pagesoup.find_all('em',class_='em-as-shipped-config-quantity'):
+            component_quantity.append(attribute.text)
+
+        #######################CREATE CSV TABLE AND WRITE INFORMATION TO A CSV (SERVICETAG.CSV)##################
+        filename = service_tag + '.csv'
+        f = open(filename,'w')        
+
+        #row titles
+        f.write('Model: ,')        
+        f.write('Service Tag: ,')        
+        for item in component_title: ##titles for components
+            f.write(item +',')
+            f.write(item +'Qty'+ ',')
+        f.write('\n') #new line
+
+        #name and servicetag
+        f.write(name + ',')
+        f.write(service_tag + ',')
+        
+        #main attribute        
+        replace_comma = [] #list to store stripped items
+        for item in component_bute: 
+            replace_comma.append(item.replace(",","-"))
+        for item in replace_comma: ##add each item to the csv file
+            f.write(item +',,')
+        
+        #extra atribute
+        replace_comma = [] #list to store stripped items
+        for item in extra_component_bute: 
+            replace_comma.append(item.replace(",","-"))
+        for item in replace_comma: ##add each item to the csv file
+            f.write(item +',,')
+
+        #quantity
+        f.write('\n')
+        f.write(',,,')
+        replace_comma = [] #list to store stripped items
+        for item in component_quantity: 
+            replace_comma.append(item.replace(",","-"))
+        for item in replace_comma: ##add each item to the csv file
+            f.write(item +',,')
+
+        #indent 2 spaces
+        f.write('\n')
+        f.write('\n')
+        f.close()
+
+    def get_spreadsheet(self):
+        ##########################GET SERVICE TAGS FROM EXCEL SHEET##############
+        #get file name and read it into data frame df
+        file_name = input('Input file name: ')
+        df = pd.read_csv(file_name)
+
+        #get each line of the df and write it into a list
+        my_list = []
+        for line in df['Tag:']:
+            my_list.append(line)
+
+my_bot = dellBot()
+my_bot.get_spreadsheet()
+
+#my_bot.get_info()
+#print('done')
+
